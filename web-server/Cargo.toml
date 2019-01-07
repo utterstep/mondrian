@@ -1,0 +1,26 @@
+[package]
+name = "web-server"
+version = "0.1.0"
+authors = ["Vlad Stepanov <8uk.8ak@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+actix = "0.7"
+actix-web = "0.7"
+
+chrono = "0.4"
+diesel = "1.3"
+dotenv = "0.13"
+env_logger = "0.6"
+failure = "0.1.5"
+futures = "0.1"
+jsonwebtoken = "5"
+lazy_static = "1.2"
+r2d2 = "0.8"
+rust-argon2 = "0.4"
+
+serde = "1"
+serde_derive = "1"
+
+# inner deps
+models = { path = "../models" }
