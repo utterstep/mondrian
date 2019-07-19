@@ -1,10 +1,9 @@
-use actix::{Handler, Message};
 use diesel::prelude::*;
 use serde_derive::Deserialize;
 
 use models::users::User;
 
-use crate::{apps::api::serializers::user::UserId, db::DbExecutor, errors::ServiceError};
+use crate::{apps::api::serializers::user::UserInfo, db::DbHandler, errors::ServiceError};
 
 #[derive(Debug, Deserialize)]
 pub struct AuthData {
@@ -13,14 +12,8 @@ pub struct AuthData {
     pub password: Option<String>,
 }
 
-impl Message for AuthData {
-    type Result = Result<UserId, ServiceError>;
-}
-
-impl Handler<AuthData> for DbExecutor {
-    type Result = Result<UserId, ServiceError>;
-
-    fn handle(&mut self, msg: AuthData, _: &mut Self::Context) -> Self::Result {
+impl DbHandler {
+    pub fn login(&self, msg: AuthData) -> Result<UserInfo, ServiceError> {
         use models::schema::users::dsl::{email, phone, users};
 
         let conn = &self
@@ -43,7 +36,7 @@ impl Handler<AuthData> for DbExecutor {
 
         let user = query.first::<User>(conn).optional()?;
 
-        if let Some(user) = &user {
+        if let Some(user) = user {
             if !user.superuser {
                 return Ok(user.into());
             }

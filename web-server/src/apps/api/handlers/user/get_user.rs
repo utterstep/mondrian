@@ -1,21 +1,14 @@
-use actix::{Handler, Message};
 use diesel::prelude::*;
 
 use models::users::User;
 
-use crate::{apps::api::serializers::user::UserInfo, db::DbExecutor, errors::ServiceError};
+use crate::{apps::api::serializers::user::UserInfo, db::DbHandler, errors::ServiceError};
 
 #[derive(Debug)]
 pub struct UserRequest(pub i32);
 
-impl Message for UserRequest {
-    type Result = Result<UserInfo, ServiceError>;
-}
-
-impl Handler<UserRequest> for DbExecutor {
-    type Result = Result<UserInfo, ServiceError>;
-
-    fn handle(&mut self, msg: UserRequest, _: &mut Self::Context) -> Self::Result {
+impl DbHandler {
+    pub fn get_user(&self, msg: UserRequest) -> Result<UserInfo, ServiceError> {
         use models::schema::users::dsl::{id, users};
 
         let conn = &self

@@ -1,21 +1,14 @@
-use actix::{Handler, Message};
 use diesel::prelude::*;
 
 pub use models::users::{NewUserEncrypted, NewUserPlain, User};
 
-use crate::{apps::api::serializers::user::UserInfo, db::DbExecutor, errors::ServiceError};
+use crate::{apps::api::serializers::user::UserInfo, db::DbHandler, errors::ServiceError};
 
 #[derive(Debug)]
 pub struct NewUserRequest(pub NewUserPlain);
 
-impl Message for NewUserRequest {
-    type Result = Result<UserInfo, ServiceError>;
-}
-
-impl Handler<NewUserRequest> for DbExecutor {
-    type Result = Result<UserInfo, ServiceError>;
-
-    fn handle(&mut self, msg: NewUserRequest, _: &mut Self::Context) -> Self::Result {
+impl DbHandler {
+    pub fn register(&self, msg: NewUserRequest) -> Result<UserInfo, ServiceError> {
         use models::schema::users::dsl::users;
 
         let conn = &self

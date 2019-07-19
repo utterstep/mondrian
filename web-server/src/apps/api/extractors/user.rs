@@ -1,97 +1,60 @@
-use actix_web::{middleware::identity::RequestIdentity, Error, FromRequest, HttpRequest};
+use actix_identity::Identity;
+use actix_web::{
+    dev::Payload,
+    error::BlockingError,
+    web::{self, Data},
+    FromRequest, HttpRequest,
+};
 
-use futures::{Future, Poll};
-
-// use models::users::User;
+use futures::{Future, IntoFuture};
 
 use crate::{
     apps::api::{
         handlers::get_user::UserRequest,
         serializers::user::{UserId, UserInfo},
-        AppState,
+        AppData,
     },
     errors::ServiceError,
 };
 
-impl<S> FromRequest<S> for UserId {
+impl FromRequest for UserId {
     type Config = ();
-    type Result = Result<Self, ServiceError>;
+    type Error = ServiceError;
+    type Future = Result<Self, Self::Error>;
 
-    fn from_request(req: &HttpRequest<S>, _: &Self::Config) -> Self::Result {
-        match req.identity() {
-            Some(identity) => Ok(UserId::from_token(&identity)?),
-            None => Err(ServiceError::Unauthorized),
+    fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
+        let id = Identity::from_request(req, payload);
+
+        match id {
+            Ok(id) => match id.identity() {
+                Some(identity) => Ok(UserId::from_token(&identity)?),
+                None => Err(ServiceError::Unauthorized),
+            },
+            Err(_) => Err(ServiceError::InternalServerError),
         }
     }
 }
 
-impl FromRequest<AppState> for UserInfo {
+impl FromRequest for UserInfo {
     type Config = ();
-    type Result = Box<Future<Item = Self, Error = Error>>;
+    type Error = ServiceError;
+    type Future = Box<Future<Item = Self, Error = Self::Error>>;
 
-    fn from_request(req: &HttpRequest<AppState>, _: &Self::Config) -> Self::Result {
-        Box::new(UserInfoResult::from_req(req))
-    }
-}
+    fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
+        let data = Data::from_request(req, payload).map_err(|_| ServiceError::InternalServerError);
+        let user_id = UserId::from_request(req, payload).into_future();
 
-struct UserInfoResult {
-    fut: Option<Box<Future<Item = UserInfo, Error = Error>>>,
-    err: Option<Error>,
-}
-
-impl UserInfoResult {
-    fn from_err(err: ServiceError) -> Self {
-        Self {
-            err: Some(err.into()),
-            fut: None,
-        }
-    }
-
-    fn from_req(req: &HttpRequest<AppState>) -> Self {
-        let user_id = match req.identity() {
-            Some(identity) => UserId::from_token(&identity),
-            None => {
-                return Self::from_err(ServiceError::Unauthorized);
-            }
-        };
-
-        let user_id = match user_id {
-            Ok(user_id) => user_id.id,
-            Err(jwt_error) => {
-                return Self::from_err(jwt_error.into());
-            }
-        };
-
-        Self {
-            err: None,
-            fut: Some(Box::new(
-                req.state()
-                    .db
-                    .send(UserRequest(user_id))
-                    .from_err::<Error>()
-                    .and_then(|db_response| match db_response {
-                        Ok(user) => Ok(user),
-                        Err(db_error) => Err(db_error.into()),
-                    }),
-            )),
-        }
-    }
-}
-
-impl Future for UserInfoResult {
-    type Item = UserInfo;
-    type Error = Error;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        if let Some(err) = self.err.take() {
-            return Err(err);
-        }
-
-        if let Some(ref mut fut) = self.fut {
-            return fut.poll();
-        }
-
-        // struct was instantiated empty
-        Err(ServiceError::InternalServerError.into())
+        Box::new(
+            user_id
+                .join(data)
+                .and_then(move |(user_id, data): (UserId, Data<AppData>)| {
+                    web::block(move || data.db.get_user(UserRequest(user_id.id))).map_err(|err| {
+                        match err {
+                            BlockingError::Error(err) => err,
+                            BlockingError::Canceled => ServiceError::InternalServerError,
+                        }
+                    })
+                }),
+        )
     }
 }
