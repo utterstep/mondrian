@@ -20,10 +20,6 @@ impl DbHandler {
             .0
             .get()
             .map_err(|_| ServiceError::InternalServerError)?;
-        let incomplete_data_error = Err(ServiceError::BadRequest(
-            "Password should be supplied for superuser accounts".into(),
-        ));
-        let mismatch_error = Err(ServiceError::Unauthorized);
 
         let query = users.into_boxed();
 
@@ -47,16 +43,18 @@ impl DbHandler {
                         if valid {
                             return Ok(user.into());
                         } else {
-                            return mismatch_error;
+                            return Err(ServiceError::Unauthorized);
                         }
                     }
-                    _ => return mismatch_error,
+                    _ => return Err(ServiceError::Unauthorized),
                 }
             }
 
-            return incomplete_data_error;
+            return Err(ServiceError::Forbidden(
+                "Password should be supplied for superuser accounts".into(),
+            ));
         }
 
-        mismatch_error
+        Err(ServiceError::Unauthorized)
     }
 }

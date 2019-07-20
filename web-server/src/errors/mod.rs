@@ -14,6 +14,9 @@ pub enum ServiceError {
 
     #[fail(display = "Anauthorized")]
     Unauthorized,
+
+    #[fail(display = "Forbidden: {}", _0)]
+    Forbidden(String),
 }
 
 // impl ResponseError trait allows to convert our errors into http responses with appropriate data
@@ -25,6 +28,7 @@ impl ResponseError for ServiceError {
             }
             ServiceError::BadRequest(ref message) => HttpResponse::BadRequest().json(message),
             ServiceError::Unauthorized => HttpResponse::Unauthorized().finish(),
+            ServiceError::Forbidden(ref message) => HttpResponse::Forbidden().json(message),
         }
     }
 }

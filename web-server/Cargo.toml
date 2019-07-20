@@ -1,5 +1,5 @@
 [package]
-name = "web-server"
+name = "mondrian-web-server"
 version = "0.1.0"
 authors = ["Vlad Stepanov <8uk.8ak@gmail.com>"]
 edition = "2018"
