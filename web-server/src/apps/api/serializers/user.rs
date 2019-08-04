@@ -1,9 +1,13 @@
+use std::convert::TryFrom;
+
 use chrono::{Duration, Local};
 use jsonwebtoken::{decode, encode, errors::Result as JWTResult, Header, Validation};
 use lazy_static::lazy_static;
 use serde_derive::{Deserialize, Serialize};
 
-use models::users::User;
+use mondrian_models::users::User;
+
+use crate::errors::ServiceError;
 
 #[derive(Debug, Serialize)]
 pub struct UserInfo {
@@ -14,6 +18,35 @@ pub struct UserInfo {
     email: String,
     phone: String,
     superuser: bool,
+}
+
+#[derive(Debug)]
+pub struct SuperuserInfo(pub UserInfo);
+
+impl TryFrom<UserInfo> for SuperuserInfo {
+    type Error = SuperuserConversionError;
+
+    fn try_from(user_info: UserInfo) -> Result<Self, Self::Error> {
+        if user_info.superuser {
+            Ok(Self(user_info))
+        } else {
+            Err(SuperuserConversionError::NotSuperuser)
+        }
+    }
+}
+
+pub enum SuperuserConversionError {
+    NotSuperuser,
+}
+
+impl Into<ServiceError> for SuperuserConversionError {
+    fn into(self) -> ServiceError {
+        match self {
+            SuperuserConversionError::NotSuperuser => {
+                ServiceError::Forbidden("must be a superuser".to_owned())
+            }
+        }
+    }
 }
 
 impl From<User> for UserInfo {

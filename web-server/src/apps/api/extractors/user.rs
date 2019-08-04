@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use actix_identity::Identity;
 use actix_web::{
     dev::Payload,
@@ -11,7 +13,7 @@ use futures::{Future, IntoFuture};
 use crate::{
     apps::api::{
         handlers::get_user::UserRequest,
-        serializers::user::{UserId, UserInfo},
+        serializers::user::{SuperuserConversionError, SuperuserInfo, UserId, UserInfo},
         AppData,
     },
     errors::ServiceError,
@@ -55,6 +57,22 @@ impl FromRequest for UserInfo {
                         }
                     })
                 }),
+        )
+    }
+}
+
+impl FromRequest for SuperuserInfo {
+    type Config = ();
+    type Error = ServiceError;
+    type Future = Box<Future<Item = Self, Error = Self::Error>>;
+
+    fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
+        Box::new(
+            UserInfo::from_request(req, payload).and_then(move |user_info| {
+                user_info
+                    .try_into()
+                    .map_err(|e: SuperuserConversionError| e.into())
+            }),
         )
     }
 }

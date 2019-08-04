@@ -1,10 +1,10 @@
 use argon2;
 use chrono::NaiveDateTime;
-use serde_derive::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::{schema::users, utils::crypto};
 
-#[derive(Debug, Deserialize, Serialize, Queryable, Insertable)]
+#[derive(Debug, Deserialize, Queryable, Insertable, Identifiable)]
 pub struct User {
     pub id: i32,
     pub first_name: String,
@@ -12,7 +12,7 @@ pub struct User {
     pub middle_name: String,
     pub email: String,
     pub phone: String,
-    pub password: String,
+    password: String,
     pub superuser: bool,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -26,7 +26,7 @@ pub struct NewUserEncrypted {
     pub middle_name: String,
     pub email: String,
     pub phone: String,
-    pub password: String,
+    password: String,
     pub superuser: bool,
 }
 
@@ -37,7 +37,7 @@ pub struct NewUserPlain {
     pub middle_name: String,
     pub email: String,
     pub phone: String,
-    pub password: Option<String>,
+    password: Option<String>,
 }
 
 impl User {

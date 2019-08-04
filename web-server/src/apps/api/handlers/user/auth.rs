@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use serde_derive::Deserialize;
 
-use models::users::User;
+use mondrian_models::users::User;
 
 use crate::{apps::api::serializers::user::UserInfo, db::DbHandler, errors::ServiceError};
 
@@ -14,7 +14,7 @@ pub struct AuthData {
 
 impl DbHandler {
     pub fn login(&self, msg: AuthData) -> Result<UserInfo, ServiceError> {
-        use models::schema::users::dsl::{email, phone, users};
+        use mondrian_models::schema::users::dsl::{email, phone, users};
 
         let conn = &self
             .0

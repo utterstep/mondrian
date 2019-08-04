@@ -10,7 +10,7 @@ use futures::future::Future;
 use crate::{
     apps::api::{
         handlers::auth::AuthData,
-        serializers::user::{UserId, UserInfo},
+        serializers::user::{SuperuserInfo, UserId, UserInfo},
         AppData,
     },
     errors::ServiceError,
@@ -39,8 +39,6 @@ pub fn login(
     })
 }
 
-// for actix FromRequest trait
-#[allow(clippy::needless_pass_by_value)]
 pub fn logout(id: Identity) -> impl Responder {
     id.forget();
 
@@ -53,4 +51,8 @@ pub fn get_me(user_info: UserInfo) -> impl Responder {
 
 pub fn get_my_id(user_id: UserId) -> impl Responder {
     HttpResponse::Ok().json(user_id)
+}
+
+pub fn is_superuser(_superuser: SuperuserInfo) -> impl Responder {
+    HttpResponse::NoContent()
 }

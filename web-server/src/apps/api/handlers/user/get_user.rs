@@ -1,6 +1,6 @@
 use diesel::prelude::*;
 
-use models::users::User;
+use mondrian_models::users::User;
 
 use crate::{apps::api::serializers::user::UserInfo, db::DbHandler, errors::ServiceError};
 
@@ -9,7 +9,7 @@ pub struct UserRequest(pub i32);
 
 impl DbHandler {
     pub fn get_user(&self, msg: UserRequest) -> Result<UserInfo, ServiceError> {
-        use models::schema::users::dsl::{id, users};
+        use mondrian_models::schema::users::dsl::{id, users};
 
         let conn = &self
             .0

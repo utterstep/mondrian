@@ -29,6 +29,10 @@ pub fn config_api(cfg: &mut web::ServiceConfig, db: PgPool) {
             )
             // current user information
             .route("/users/me/", web::get().to(routes::auth::get_me))
-            .route("/users/me/id/", web::get().to(routes::auth::get_my_id)),
+            .route("/users/me/id/", web::get().to(routes::auth::get_my_id))
+            .route(
+                "/users/me/is_superuser/",
+                web::get().to(routes::auth::is_superuser),
+            ),
     );
 }

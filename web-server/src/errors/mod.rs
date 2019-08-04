@@ -12,7 +12,7 @@ pub enum ServiceError {
     #[fail(display = "BadRequest: {}", _0)]
     BadRequest(String),
 
-    #[fail(display = "Anauthorized")]
+    #[fail(display = "Unauthorized")]
     Unauthorized,
 
     #[fail(display = "Forbidden: {}", _0)]

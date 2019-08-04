@@ -12,14 +12,14 @@ lazy_static! {
     };
 }
 
-pub fn hash_password(plain: &str) -> argon2::Result<String> {
-    lazy_static! {
-        static ref SALT: Vec<u8> = {
-            let salt = env::var("MONDRIAN_SALT").unwrap();
-            salt.into_bytes()
-        };
-    }
+lazy_static! {
+    static ref SALT: Vec<u8> = {
+        let salt = env::var("MONDRIAN_SALT").unwrap();
+        salt.into_bytes()
+    };
+}
 
+pub fn hash_password(plain: &str) -> argon2::Result<String> {
     hash_password_inner(plain, &SALT)
 }
 
