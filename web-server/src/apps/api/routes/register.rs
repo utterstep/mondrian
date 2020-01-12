@@ -4,7 +4,6 @@ use actix_web::{
     web::{self, Data, Json},
     HttpResponse,
 };
-use futures::future::Future;
 
 use crate::{
     apps::api::{
@@ -15,14 +14,16 @@ use crate::{
     errors::ServiceError,
 };
 
-pub fn register_user(
+pub async fn register_user(
     user_data: Json<NewUserPlain>,
     data: Data<AppData>,
     id: Identity,
-) -> impl Future<Item = HttpResponse, Error = ServiceError> {
+) -> Result<HttpResponse, ServiceError> {
     let new_user = NewUserRequest(user_data.into_inner());
 
-    web::block(move || data.db.register(new_user)).then(move |res| match res {
+    let res = web::block(move || data.db.register(new_user)).await;
+
+    match res {
         Ok(user) => {
             let user_id: UserId = (&user).into();
             let token = user_id
@@ -35,5 +36,5 @@ pub fn register_user(
         }
         Err(BlockingError::Error(err)) => Err(err),
         Err(BlockingError::Canceled) => Err(ServiceError::InternalServerError),
-    })
+    }
 }

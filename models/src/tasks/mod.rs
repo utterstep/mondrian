@@ -27,7 +27,7 @@ pub struct TaskAssignment {
     pub start_time: NaiveDateTime,
     pub duration: i32,
     pub completed: bool,
-    pub urgent: bool,
+    pub priority: i32,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }

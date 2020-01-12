@@ -17,7 +17,8 @@ use self::apps::api;
 
 type PgPool = r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::pg::PgConnection>>;
 
-fn main() -> std::io::Result<()> {
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
     dotenv().ok();
     env_logger::init();
 
@@ -53,4 +54,5 @@ fn main() -> std::io::Result<()> {
     .bind(&bind_to)
     .unwrap_or_else(|e| panic!("Can not bind to '{}': {}", bind_to, e))
     .run()
+    .await
 }

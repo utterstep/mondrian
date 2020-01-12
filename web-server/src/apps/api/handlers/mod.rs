@@ -1,3 +1,3 @@
-mod user;
+mod users;
 
-pub(super) use self::user::{auth, get_user, register};
+pub(super) use self::users::{auth, get_user, register};

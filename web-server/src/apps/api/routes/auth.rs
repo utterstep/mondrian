@@ -5,8 +5,6 @@ use actix_web::{
     HttpResponse, Responder,
 };
 
-use futures::future::Future;
-
 use crate::{
     apps::api::{
         handlers::auth::AuthData,
@@ -16,14 +14,15 @@ use crate::{
     errors::ServiceError,
 };
 
-pub fn login(
+pub async fn login(
     auth_data: Json<AuthData>,
     data: Data<AppData>,
     id: Identity,
-) -> impl Future<Item = HttpResponse, Error = ServiceError> {
+) -> Result<HttpResponse, ServiceError> {
     let auth_data = auth_data.into_inner();
 
-    web::block(move || data.db.login(auth_data)).then(move |res| match res {
+    let res = web::block(move || data.db.login(auth_data)).await;
+    match res {
         Ok(user_info) => {
             let user_id: UserId = (&user_info).into();
             let token = user_id
@@ -36,23 +35,23 @@ pub fn login(
         }
         Err(BlockingError::Error(err)) => Err(err),
         Err(BlockingError::Canceled) => Err(ServiceError::InternalServerError),
-    })
+    }
 }
 
-pub fn logout(id: Identity) -> impl Responder {
+pub async fn logout(id: Identity) -> impl Responder {
     id.forget();
 
     HttpResponse::NoContent()
 }
 
-pub fn get_me(user_info: UserInfo) -> impl Responder {
+pub async fn get_me(user_info: UserInfo) -> impl Responder {
     HttpResponse::Ok().json(user_info)
 }
 
-pub fn get_my_id(user_id: UserId) -> impl Responder {
+pub async fn get_my_id(user_id: UserId) -> impl Responder {
     HttpResponse::Ok().json(user_id)
 }
 
-pub fn is_superuser(_superuser: SuperuserInfo) -> impl Responder {
+pub async fn is_superuser(_superuser: SuperuserInfo) -> impl Responder {
     HttpResponse::NoContent()
 }

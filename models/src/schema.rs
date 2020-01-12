@@ -6,7 +6,7 @@ table! {
         start_time -> Timestamp,
         duration -> Int4,
         completed -> Bool,
-        urgent -> Bool,
+        priority -> Int4,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -42,4 +42,8 @@ joinable!(task_assignments -> tasks (task_id));
 joinable!(task_assignments -> users (user_id));
 joinable!(tasks -> users (author_id));
 
-allow_tables_to_appear_in_same_query!(task_assignments, tasks, users,);
+allow_tables_to_appear_in_same_query!(
+    task_assignments,
+    tasks,
+    users,
+);
