@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, future::Future};
 
 use actix_identity::Identity;
 use actix_web::{
@@ -8,7 +8,7 @@ use actix_web::{
     FromRequest, HttpRequest,
 };
 
-use futures::{Future, IntoFuture};
+use futures::future::{ok, err, ready, Ready, TryFutureExt, FutureObj};
 
 use crate::{
     apps::api::{
@@ -22,17 +22,19 @@ use crate::{
 impl FromRequest for UserId {
     type Config = ();
     type Error = ServiceError;
-    type Future = Result<Self, Self::Error>;
+    type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
-        let id = Identity::from_request(req, payload);
+        let id = req.app_data::<Identity>();
 
         match id {
-            Ok(id) => match id.identity() {
-                Some(identity) => Ok(UserId::from_token(&identity)?),
-                None => Err(ServiceError::Unauthorized),
+            Some(identity) => {
+                match identity.identity() {
+                    Some(identity) => ready(UserId::from_token(&identity).map_err(From::from)),
+                    None => err(ServiceError::Unauthorized),
+                }
             },
-            Err(_) => Err(ServiceError::InternalServerError),
+            None => err(ServiceError::InternalServerError),
         }
     }
 }
@@ -40,31 +42,34 @@ impl FromRequest for UserId {
 impl FromRequest for UserInfo {
     type Config = ();
     type Error = ServiceError;
-    type Future = Box<Future<Item = Self, Error = Self::Error>>;
+    type Future = Box<Future<Output = Result<Self, Self::Error>>>;
 
     fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
-        let data = Data::from_request(req, payload).map_err(|_| ServiceError::InternalServerError);
-        let user_id = UserId::from_request(req, payload).into_future();
+        macro_rules! unwrap_or {
+            ($opt: expr, $error: expr) => {
+                match $opt {
+                    Some(value) => value,
+                    None => return Box::new(err($error))
+                }
+            };
+        }
 
-        Box::new(
-            user_id
-                .join(data)
-                .and_then(move |(user_id, data): (UserId, Data<AppData>)| {
-                    web::block(move || data.db.get_user(UserRequest(user_id.id))).map_err(|err| {
-                        match err {
-                            BlockingError::Error(err) => err,
-                            BlockingError::Canceled => ServiceError::InternalServerError,
-                        }
-                    })
-                }),
-        )
+        let data = unwrap_or!(req.app_data::<AppData>(), ServiceError::InternalServerError);
+        let user_id = unwrap_or!(req.app_data::<UserId>(), ServiceError::Unauthorized);
+
+        Box::new(web::block(move || data.db.get_user(UserRequest(user_id.id))).map_err(|err| {
+            match err {
+                BlockingError::Error(err) => err,
+                BlockingError::Canceled => ServiceError::InternalServerError,
+            }
+        }))
     }
 }
 
 impl FromRequest for SuperuserInfo {
     type Config = ();
     type Error = ServiceError;
-    type Future = Box<Future<Item = Self, Error = Self::Error>>;
+    type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
         Box::new(

@@ -18,13 +18,13 @@ pub fn config_api(cfg: &mut web::ServiceConfig, db: PgPool) {
             // router for registration
             .route(
                 "/register/",
-                web::post().to_async(routes::register::register_user),
+                web::post().to(routes::register::register_user),
             )
             // routes for authentication
             .service(
                 web::resource("/auth/")
                     .route(web::get().to(routes::auth::get_me))
-                    .route(web::post().to_async(routes::auth::login))
+                    .route(web::post().to(routes::auth::login))
                     .route(web::delete().to(routes::auth::logout)),
             )
             // current user information

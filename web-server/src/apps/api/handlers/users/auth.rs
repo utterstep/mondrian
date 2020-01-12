@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 use mondrian_models::users::User;
 

@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use chrono::{Duration, Local};
 use jsonwebtoken::{decode, encode, errors::Result as JWTResult, Header, Validation};
 use lazy_static::lazy_static;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use mondrian_models::users::User;
 
